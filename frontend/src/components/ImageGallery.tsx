@@ -95,11 +95,11 @@ function ImageGallery({ uuid }: ImageGalleryProps) {
                         key={index}
                         className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
                     >
-                        <div className="h-12 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <div className="bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2">
                             <img
                                 src={`data:image/jpeg;base64,${image.data}`}
                                 alt={image.filename}
-                                className="h-full w-auto object-contain"
+                                className="h-12 w-auto object-contain max-w-full"
                                 loading="lazy"
                             />
                         </div>
