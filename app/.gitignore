@@ -1,0 +1,11 @@
+#画像
+*.jpg
+.env
+
+# Python仮想環境
+appenv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
