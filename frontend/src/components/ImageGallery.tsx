@@ -86,31 +86,20 @@ function ImageGallery({ uuid }: ImageGalleryProps) {
 
     return (
         <div className="space-y-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-                {images.length}枚の画像が見つかりました
-            </div>
             <div className="flex flex-wrap gap-4">
                 {images.map((image, index) => (
                     <div
                         key={index}
                         className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
                     >
-                        <div className="h-12 bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 overflow-hidden">
+                        <div className="bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 overflow-hidden">
                             <img
                                 src={`data:image/jpeg;base64,${image.data}`}
                                 alt={image.filename}
                                 className="max-h-full max-w-full object-contain"
-                                style={{ height: '60px', width: 'auto' }}
+                                style={{ height: '260px', width: 'auto' }}
                                 loading="lazy"
                             />
-                        </div>
-                        <div className="p-3">
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={image.filename}>
-                                {image.filename}
-                            </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                {(image.size / 1024).toFixed(1)} KB
-                            </p>
                         </div>
                     </div>
                 ))}
