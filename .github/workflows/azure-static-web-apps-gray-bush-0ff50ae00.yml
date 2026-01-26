@@ -48,10 +48,9 @@ jobs:
           action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./frontend" # App source code path
+          app_location: "./frontend/dist" # Use pre-built dist directory (already built above)
           api_location: "" # Api source code path - optional
-          output_location: "dist" # Built app content directory - Vite outputs to 'dist'
-          skip_app_build: true # Skip Oryx build since we already built with pnpm
+          output_location: "." # Output is already in dist, so use current directory
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
