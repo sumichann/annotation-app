@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import ItemCard from '../components/ItemCard'
+import ItemImageSection from '../components/ItemImageSection'
+import ItemListSection from '../components/ItemListSection'
 
 interface Item {
     anon_item_id: string
@@ -124,22 +125,11 @@ function ItemPage() {
                     </p>
                 </div>
 
-                {items.length === 0 ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 text-center">
-                        <p className="text-gray-600 dark:text-gray-400">No items found</p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {items.map((item, index) => (
-                            <ItemCard
-                                key={item.item_key || index}
-                                item={item}
-                                index={index}
-                                onUpdate={handleUpdateVerification}
-                            />
-                        ))}
-                    </div>
-                )}
+                {/* 画像表示セクション */}
+                {itemId && <ItemImageSection itemId={itemId} />}
+
+                {/* 商品情報セクション */}
+                <ItemListSection items={items} onUpdate={handleUpdateVerification} />
             </div>
         </div>
     )

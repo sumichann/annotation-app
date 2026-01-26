@@ -13,4 +13,5 @@ services:
     volumes:
       - .:/code/app
     # ホットリロードを有効にするコマンドに変更
-    command: uvicorn app.main:app --host 0.0.0.0 --port 80 --reload
+    # 起動前に依存関係をインストールしてからuvicornを起動
+    command: sh -c "pip install --no-cache-dir -r /code/app/requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 80 --reload"

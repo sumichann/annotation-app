@@ -17,7 +17,7 @@ function HomePage() {
                 Annotation application
             </h1>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-md mb-4">
                 <input
                     type="text"
                     value={itemId}

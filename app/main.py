@@ -1,10 +1,17 @@
+import os
+import base64
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import List, Optional
 from fastapi.middleware.cors import CORSMiddleware
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
 
 from . import models, schemas, database
+
+load_dotenv()
 
 app = FastAPI(title="Annotation API")
 
@@ -86,3 +93,74 @@ def update_verification(
         "item_key": item.item_key,
         "new_result": item.verification_result,
     }
+
+
+# 3. UUIDに対応した写真を全て取得
+@app.get("/images/{item_id}")
+def get_images(item_id: UUID):
+    """
+    UUIDに対応したすべての写真をBlob Storageから取得します。
+    画像ファイル名は {uuid}_{index}.jpg の形式です。
+    同じUUIDで始まるすべての画像を取得して返します。
+    """
+    # Blob Storageの設定を環境変数から取得
+    blob_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+    container_name = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "clothes")
+
+    if not blob_connection_string:
+        raise HTTPException(
+            status_code=500, detail="Azure Storage connection string is not configured"
+        )
+
+    try:
+        # Blob Service Clientを作成
+        blob_service_client = BlobServiceClient.from_connection_string(
+            blob_connection_string
+        )
+        container_client = blob_service_client.get_container_client(container_name)
+
+        # UUIDで始まるすべてのblobを検索
+        prefix = f"{item_id}_"
+        blobs = container_client.list_blobs(name_starts_with=prefix)
+
+        images = []
+        for blob in blobs:
+            # .jpgで終わるファイルのみを対象とする
+            if blob.name.endswith(".jpg"):
+                # Blobを取得
+                blob_client = container_client.get_blob_client(blob.name)
+                blob_data = blob_client.download_blob()
+                image_bytes = blob_data.readall()
+
+                # base64エンコード
+                image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+
+                images.append(
+                    {
+                        "filename": blob.name,
+                        "data": image_base64,
+                        "size": len(image_bytes),
+                    }
+                )
+
+        if not images:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No images found for UUID: {item_id}",
+            )
+
+        # JSON形式で返す
+        return JSONResponse(
+            content={
+                "uuid": str(item_id),
+                "count": len(images),
+                "images": images,
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving images: {str(e)}"
+        )
