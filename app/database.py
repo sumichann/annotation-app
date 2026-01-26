@@ -5,7 +5,7 @@ import urllib.parse
 
 from dotenv import load_dotenv
 
-load_dotenv() 
+load_dotenv()
 
 # 環境変数から設定を取得 (Docker実行時に注入します)
 DB_HOST = os.getenv("DB_HOST")

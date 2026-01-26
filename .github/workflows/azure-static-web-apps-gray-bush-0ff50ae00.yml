@@ -19,6 +19,26 @@ jobs:
         with:
           submodules: true
           lfs: false
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: pnpm build
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -30,7 +50,7 @@ jobs:
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "./frontend" # App source code path
           api_location: "" # Api source code path - optional
-          output_location: "build" # Built app content directory - optional
+          output_location: "dist" # Built app content directory - Vite outputs to 'dist'
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
