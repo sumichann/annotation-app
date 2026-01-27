@@ -14,9 +14,10 @@ interface ImageGalleryResponse {
 
 interface ImageGalleryProps {
     uuid: string
+    category?: string
 }
 
-function ImageGallery({ uuid }: ImageGalleryProps) {
+function ImageGallery({ uuid, category }: ImageGalleryProps) {
     const [images, setImages] = useState<ImageData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -32,7 +33,8 @@ function ImageGallery({ uuid }: ImageGalleryProps) {
                 setLoading(true)
                 setError(null)
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiUrl}/images/${uuid}`)
+                const params = category ? `?category=${encodeURIComponent(category)}` : ''
+                const response = await fetch(`${apiUrl}/images/${uuid}${params}`)
 
                 if (!response.ok) {
                     if (response.status === 404) {

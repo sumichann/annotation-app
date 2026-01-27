@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import ItemImageSection from '../components/ItemImageSection'
 import ItemListSection from '../components/ItemListSection'
 
@@ -9,10 +9,14 @@ interface Item {
     item_name: string
     composition_data?: any
     verification_result?: string | null
+    product_name?: string | null
+    product_description?: string | null
 }
 
 function ItemPage() {
     const { itemId } = useParams<{ itemId: string }>()
+    const [searchParams] = useSearchParams()
+    const category = searchParams.get('category') || undefined
     const navigate = useNavigate()
     const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(true)
@@ -28,7 +32,8 @@ function ItemPage() {
         try {
             setLoading(true)
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-            const response = await fetch(`${apiUrl}/items/${itemId}`)
+            const params = category ? `?category=${encodeURIComponent(category)}` : ''
+            const response = await fetch(`${apiUrl}/items/${itemId}${params}`)
 
             if (!response.ok) {
                 throw new Error('Item not found')
@@ -42,7 +47,7 @@ function ItemPage() {
         } finally {
             setLoading(false)
         }
-    }, [itemId])
+    }, [itemId, category])
 
     useEffect(() => {
         fetchItems()
@@ -56,16 +61,18 @@ function ItemPage() {
 
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-            const response = await fetch(
-                `${apiUrl}/items/${item.anon_item_id}?item_key=${encodeURIComponent(item.item_key)}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ result }),
-                }
-            )
+            const searchParams = new URLSearchParams()
+            searchParams.set('item_key', item.item_key)
+            if (category) {
+                searchParams.set('category', category)
+            }
+            const response = await fetch(`${apiUrl}/items/${item.anon_item_id}?${searchParams.toString()}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ result }),
+            })
 
             if (!response.ok) {
                 throw new Error('Failed to update verification')
@@ -109,7 +116,7 @@ function ItemPage() {
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
-            <div className="max-w-4xl mx-auto">
+            <div className="mx-auto">
                 <div className="mb-6">
                     <button
                         onClick={() => navigate('/')}
@@ -126,7 +133,14 @@ function ItemPage() {
                 </div>
 
                 {/* 画像表示セクション */}
-                {itemId && <ItemImageSection itemId={itemId} />}
+                {itemId && (
+                    <ItemImageSection
+                        itemId={itemId}
+                        category={category}
+                        productName={items[0]?.product_name}
+                        productDescription={items[0]?.product_description}
+                    />
+                )}
 
                 {/* 商品情報セクション */}
                 <ItemListSection items={items} onUpdate={handleUpdateVerification} />

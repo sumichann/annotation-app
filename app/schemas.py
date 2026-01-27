@@ -10,6 +10,9 @@ class ItemResponse(BaseModel):
     item_name: str
     composition_data: Optional[Any] = None  # JSONの中身
     verification_result: Optional[str] = None
+    # プロダクトテーブル由来の情報
+    product_name: Optional[str] = None
+    product_description: Optional[str] = None
 
     class Config:
         from_attributes = True

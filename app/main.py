@@ -15,6 +15,54 @@ load_dotenv()
 
 app = FastAPI(title="Annotation API")
 
+
+# カテゴリー文字列から対応するアイテム・プロダクトモデルクラスを取得するヘルパー
+def get_item_model_by_category(category: Optional[str]):
+    """
+    フロントエンドの category 値に対応する SQLAlchemy モデルを返す。
+    未指定の場合は ladies_jacket をデフォルトとする。
+    """
+    mapping = {
+        "ladies_jacket": models.LadiesJacketItem,
+        "ladies_pants": models.LadiesPantsItem,
+        "ladies_suit": models.LadiesSuitItem,
+        "ladies_tops": models.LadiesTopsItem,
+        "mens_jacket": models.MensJacketItem,
+        "mens_pants": models.MensPantsItem,
+        "mens_suit": models.MensSuitItem,
+        "mens_tops": models.MensTopsItem,
+    }
+
+    if category is None:
+        # デフォルトカテゴリ（後方互換用）
+        return models.LadiesJacketItem
+
+    model = mapping.get(category)
+    if model is None:
+        raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
+    return model
+
+
+def get_product_model_by_category(category: Optional[str]):
+    mapping = {
+        "ladies_jacket": models.LadiesJacketProduct,
+        "ladies_pants": models.LadiesPantsProduct,
+        "ladies_suit": models.LadiesSuitProduct,
+        "ladies_tops": models.LadiesTopsProduct,
+        "mens_jacket": models.MensJacketProduct,
+        "mens_pants": models.MensPantsProduct,
+        "mens_suit": models.MensSuitProduct,
+        "mens_tops": models.MensTopsProduct,
+    }
+
+    if category is None:
+        return models.LadiesJacketProduct
+
+    model = mapping.get(category)
+    if model is None:
+        raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
+    return model
+
 # CORS設定 (フロントエンドからのアクセスを許可)
 app.add_middleware(
     CORSMiddleware,
@@ -33,15 +81,42 @@ def read_root():
 
 # 1. アイテム情報の取得
 @app.get("/items/{item_id}", response_model=List[schemas.ItemResponse])
-def get_item(item_id: UUID, db: Session = Depends(database.get_db)):
-    items = (
-        db.query(models.LadiesItem)
-        .filter(models.LadiesItem.anon_item_id == item_id)
-        .all()
-    )
+def get_item(
+    item_id: UUID,
+    category: Optional[str] = Query(
+        default=None, description="Category name (e.g. ladies_jacket)"
+    ),
+    db: Session = Depends(database.get_db),
+):
+    item_model = get_item_model_by_category(category)
+    product_model = get_product_model_by_category(category)
+
+    items = db.query(item_model).filter(item_model.anon_item_id == item_id).all()
     if not items:
         raise HTTPException(status_code=404, detail="Item not found")
-    return items
+
+    # プロダクト情報を取得（1商品1レコード想定）
+    product = (
+        db.query(product_model).filter(product_model.anon_item_id == item_id).first()
+    )
+
+    response_items: list[schemas.ItemResponse] = []
+    for item in items:
+        response_items.append(
+            schemas.ItemResponse(
+                anon_item_id=item.anon_item_id,
+                item_key=item.item_key,
+                item_name=item.item_name,
+                composition_data=item.composition_data,
+                verification_result=item.verification_result,
+                product_name=getattr(product, "name", None) if product else None,
+                product_description=getattr(product, "description", None)
+                if product
+                else None,
+            )
+        )
+
+    return response_items
 
 
 # 2. 検証結果の書き込み (更新)
@@ -52,25 +127,25 @@ def update_verification(
     item_key: Optional[str] = Query(
         None, description="Item key to identify the specific item"
     ),
+    category: Optional[str] = Query(
+        default=None, description="Category name (e.g. ladies_jacket)"
+    ),
     db: Session = Depends(database.get_db),
 ):
+    model = get_item_model_by_category(category)
     # item_keyが指定されている場合は、anon_item_idとitem_keyの両方で検索
     if item_key:
         item = (
-            db.query(models.LadiesItem)
+            db.query(model)
             .filter(
-                models.LadiesItem.anon_item_id == item_id,
-                models.LadiesItem.item_key == item_key,
+                model.anon_item_id == item_id,
+                model.item_key == item_key,
             )
             .first()
         )
     else:
         # item_keyが指定されていない場合は、最初の1件を取得
-        item = (
-            db.query(models.LadiesItem)
-            .filter(models.LadiesItem.anon_item_id == item_id)
-            .first()
-        )
+        item = db.query(model).filter(model.anon_item_id == item_id).first()
 
     if item is None:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -97,15 +172,20 @@ def update_verification(
 
 # 3. UUIDに対応した写真を全て取得
 @app.get("/images/{item_id}")
-def get_images(item_id: UUID):
+def get_images(item_id: UUID, category: Optional[str] = Query(default=None)):
     """
     UUIDに対応したすべての写真をBlob Storageから取得します。
-    画像ファイル名は {uuid}_{index}.jpg の形式です。
-    同じUUIDで始まるすべての画像を取得して返します。
+    画像ファイル名は以下いずれかの形式です。
+
+    - 旧形式: {uuid}_{index}.jpg
+    - 新形式: {category}/{uuid}_{index}.jpg
+
+    categoryクエリパラメータが指定されている場合は、新形式に基づいて
+    {category}/{uuid}_ で始まる画像のみを取得します。
     """
     # Blob Storageの設定を環境変数から取得
     blob_connection_string = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-    container_name = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "clothes")
+    container_name = os.getenv("AZURE_STORAGE_CONTAINER_NAME", "itemclothes")
 
     if not blob_connection_string:
         raise HTTPException(
@@ -120,7 +200,11 @@ def get_images(item_id: UUID):
         container_client = blob_service_client.get_container_client(container_name)
 
         # UUIDで始まるすべてのblobを検索
-        prefix = f"{item_id}_"
+        # category が指定されている場合は {category}/{uuid}_ プレフィックスを使用
+        if category:
+            prefix = f"{category}/{item_id}_"
+        else:
+            prefix = f"{item_id}_"
         blobs = container_client.list_blobs(name_starts_with=prefix)
 
         images = []
