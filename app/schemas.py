@@ -13,6 +13,8 @@ class ItemResponse(BaseModel):
     # プロダクトテーブル由来の情報
     product_name: Optional[str] = None
     product_description: Optional[str] = None
+    # ジャンル内通し番号（1始まり）。次のページ = index + 1
+    index: Optional[int] = None
 
     class Config:
         from_attributes = True

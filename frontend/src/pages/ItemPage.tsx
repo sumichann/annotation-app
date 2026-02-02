@@ -11,6 +11,7 @@ interface Item {
     verification_result?: string | null
     product_name?: string | null
     product_description?: string | null
+    index?: number | null
 }
 
 function ItemPage() {
@@ -20,6 +21,7 @@ function ItemPage() {
     const navigate = useNavigate()
     const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadingNext, setLoadingNext] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const fetchItems = useCallback(async () => {
@@ -86,6 +88,46 @@ function ItemPage() {
         }
     }
 
+    const handleNextItem = async () => {
+        if (!category) {
+            alert('カテゴリーが指定されていません')
+            return
+        }
+        const currentIndex = items[0]?.index
+        if (currentIndex == null || typeof currentIndex !== 'number') {
+            alert('現在の通し番号が取得できません（index がありません）')
+            return
+        }
+        const nextIndex = currentIndex + 1
+
+        try {
+            setLoadingNext(true)
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+            const response = await fetch(
+                `${apiUrl}/items/by-index?category=${encodeURIComponent(category)}&index=${nextIndex}`
+            )
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    alert('次のアイテムがありません')
+                    return
+                }
+                throw new Error('Failed to fetch next item')
+            }
+
+            const data = await response.json()
+            if (data?.anon_item_id) {
+                navigate(`/item/${data.anon_item_id}?category=${encodeURIComponent(category)}`)
+            } else {
+                alert('アイテムの取得に失敗しました')
+            }
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'エラーが発生しました')
+        } finally {
+            setLoadingNext(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
@@ -118,18 +160,37 @@ function ItemPage() {
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-8">
             <div className="mx-auto">
                 <div className="mb-6">
-                    <button
-                        onClick={() => navigate('/')}
-                        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 mb-4"
-                    >
-                        ← Back to Home
-                    </button>
+                    <div className="flex justify-between items-start mb-4">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="text-blue-500 hover:text-blue-600 dark:text-blue-400"
+                        >
+                            ← Back to Home
+                        </button>
+                        {category && (
+                            <button
+                                onClick={handleNextItem}
+                                disabled={loadingNext || items[0]?.index == null}
+                                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                {loadingNext ? '読み込み中...' : '次へ →'}
+                            </button>
+                        )}
+                    </div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                         Item ID: {itemId}
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-2">
                         Found {items.length} item(s)
                     </p>
+                    {category && (
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                            カテゴリー: {category}
+                            {items[0]?.index != null && (
+                                <> ・通し番号: {items[0].index}</>
+                            )}
+                        </p>
+                    )}
                 </div>
 
                 {/* 画像表示セクション */}

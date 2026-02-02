@@ -79,6 +79,36 @@ def read_root():
     return {"message": "Hello from Azure Container Apps!"}
 
 
+# index でアイテムの anon_item_id を取得（次のページ = index + 1 で遷移する用）
+@app.get("/items/by-index")
+def get_item_by_index(
+    category: Optional[str] = Query(
+        default=None, description="Category name (e.g. ladies_jacket)"
+    ),
+    index: int = Query(..., ge=1, description="ジャンル内の通し番号（1始まり）"),
+    db: Session = Depends(database.get_db),
+):
+    """指定したジャンル・index に対応する anon_item_id を返す。次のページは index + 1 で取得可能。"""
+    if not category:
+        raise HTTPException(status_code=400, detail="Category parameter is required")
+    product_model = get_product_model_by_category(category)
+    product = (
+        db.query(product_model)
+        .filter(product_model.index == index)
+        .first()
+    )
+    if not product:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No item found for category={category} index={index}",
+        )
+    return {
+        "anon_item_id": str(product.anon_item_id),
+        "index": product.index,
+        "category": category,
+    }
+
+
 # 1. アイテム情報の取得
 @app.get("/items/{item_id}", response_model=List[schemas.ItemResponse])
 def get_item(
@@ -100,6 +130,7 @@ def get_item(
         db.query(product_model).filter(product_model.anon_item_id == item_id).first()
     )
 
+    product_index = getattr(product, "index", None) if product else None
     response_items: list[schemas.ItemResponse] = []
     for item in items:
         response_items.append(
@@ -113,6 +144,7 @@ def get_item(
                 product_description=getattr(product, "description", None)
                 if product
                 else None,
+                index=product_index,
             )
         )
 

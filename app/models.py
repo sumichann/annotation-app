@@ -1,5 +1,6 @@
-from sqlalchemy import VARCHAR, Column, PrimaryKeyConstraint, Integer, Float, Text
+from sqlalchemy import VARCHAR, Column, PrimaryKeyConstraint, Integer, Float, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.sql import func
 from .database import Base
 
 
@@ -75,6 +76,9 @@ class BaseProduct(Base):
     # anon_item_id を主キーとして扱う（既存DB側の定義に追随）
     anon_item_id = Column(UUID(as_uuid=True), primary_key=True, index=True)
 
+    # ジャンル内の通し番号（1始まり）。次のページ = index + 1 で遷移できる
+    index = Column(Integer, nullable=True, index=True)
+
     status = Column(Text)  # text
     name = Column(Text)  # text
     description = Column(Text)  # text
@@ -91,6 +95,10 @@ class BaseProduct(Base):
     num_comments = Column(Integer)
     updated = Column(Text)  # text
     created = Column(Text)  # text
+    
+    # ロック管理用カラム
+    locked_by_user_id = Column(Integer, nullable=True, index=True)  # ロック中のユーザーID
+    locked_at = Column(DateTime(timezone=True), nullable=True)  # ロック開始日時
 
 
 class LadiesJacketProduct(BaseProduct):
