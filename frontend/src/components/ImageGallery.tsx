@@ -21,6 +21,7 @@ function ImageGallery({ uuid, category }: ImageGalleryProps) {
     const [images, setImages] = useState<ImageData[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [selectedImage, setSelectedImage] = useState<ImageData | null>(null)
 
     useEffect(() => {
         const fetchImages = async () => {
@@ -57,7 +58,19 @@ function ImageGallery({ uuid, category }: ImageGalleryProps) {
         }
 
         fetchImages()
-    }, [uuid])
+    }, [uuid, category])
+
+    // Escキーで拡大表示を閉じる
+    useEffect(() => {
+        if (!selectedImage) return
+        const handleKeydown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setSelectedImage(null)
+            }
+        }
+        window.addEventListener('keydown', handleKeydown)
+        return () => window.removeEventListener('keydown', handleKeydown)
+    }, [selectedImage])
 
     if (loading) {
         return (
@@ -87,26 +100,55 @@ function ImageGallery({ uuid, category }: ImageGalleryProps) {
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-                {images.map((image, index) => (
-                    <div
-                        key={index}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                    >
-                        <div className="bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 overflow-hidden">
-                            <img
-                                src={`data:image/jpeg;base64,${image.data}`}
-                                alt={image.filename}
-                                className="max-h-full max-w-full object-contain"
-                                style={{ height: '260px', width: 'auto' }}
-                                loading="lazy"
-                            />
-                        </div>
-                    </div>
-                ))}
+        <>
+            <div className="space-y-4">
+                <div className="flex flex-wrap gap-4">
+                    {images.map((image, index) => (
+                        <button
+                            key={index}
+                            type="button"
+                            onClick={() => setSelectedImage(image)}
+                            className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <div className="bg-gray-100 dark:bg-gray-700 flex items-center justify-center p-2 overflow-hidden">
+                                <img
+                                    src={`data:image/jpeg;base64,${image.data}`}
+                                    alt={image.filename}
+                                    className="max-h-full max-w-full object-contain cursor-zoom-in"
+                                    style={{ height: '260px', width: 'auto' }}
+                                    loading="lazy"
+                                />
+                            </div>
+                        </button>
+                    ))}
+                </div>
             </div>
-        </div>
+
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <div
+                        className="max-w-5xl max-h-[90vh] mx-4 bg-black rounded-lg overflow-hidden relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => setSelectedImage(null)}
+                            className="absolute top-3 right-3 text-white bg-black/60 rounded-full px-3 py-1 text-sm hover:bg-black"
+                        >
+                            閉じる
+                        </button>
+                        <img
+                            src={`data:image/jpeg;base64,${selectedImage.data}`}
+                            alt={selectedImage.filename}
+                            className="object-contain w-full h-full"
+                        />
+                    </div>
+                </div>
+            )}
+        </>
     )
 }
 
