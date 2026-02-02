@@ -1,6 +1,5 @@
 from sqlalchemy import VARCHAR, Column, PrimaryKeyConstraint, Integer, Float, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
 from .database import Base
 
 
