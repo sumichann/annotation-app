@@ -31,7 +31,6 @@ function ItemListSection({ items, onUpdate }: ItemListSectionProps) {
                 <ItemCard
                     key={item.item_key || index}
                     item={item}
-                    index={index}
                     onUpdate={onUpdate}
                 />
             ))}

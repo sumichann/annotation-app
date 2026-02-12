@@ -10,11 +10,10 @@ interface Item {
 
 interface ItemCardProps {
     item: Item
-    index: number
     onUpdate: (item: Item, result: string) => Promise<void>
 }
 
-function ItemCard({ item, index, onUpdate }: ItemCardProps) {
+function ItemCard({ item, onUpdate }: ItemCardProps) {
     const [isUpdating, setIsUpdating] = useState(false)
 
     const handleUpdate = async (result: string) => {
