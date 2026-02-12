@@ -14,6 +14,16 @@ interface Item {
     index?: number | null
 }
 
+// item_key の末尾の数字で昇順ソートするユーティリティ
+const sortItemsByItemKeyIndex = (items: Item[]): Item[] => {
+    const getOrder = (key?: string | null): number => {
+        if (!key) return Number.MAX_SAFE_INTEGER
+        const match = key.match(/(\d+)$/)
+        return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER
+    }
+    return [...items].sort((a, b) => getOrder(a.item_key) - getOrder(b.item_key))
+}
+
 function ItemPage() {
     const { itemId } = useParams<{ itemId: string }>()
     const [searchParams] = useSearchParams()
@@ -42,7 +52,9 @@ function ItemPage() {
             }
 
             const data = await response.json()
-            setItems(Array.isArray(data) ? data : [data])
+            const normalized: Item[] = Array.isArray(data) ? data : [data]
+            // item_key の番号順（item_1, item_2, ...）に並べ替えてからセット
+            setItems(sortItemsByItemKeyIndex(normalized))
             setError(null)
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch item')

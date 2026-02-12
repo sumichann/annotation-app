@@ -37,19 +37,10 @@ function ItemCard({ item, index, onUpdate }: ItemCardProps) {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Item #{index + 1}
+                    {item.item_key}
                 </h2>
             </div>
             <div className="space-y-4">
-                {item?.item_key && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Item Key
-                        </label>
-                        <p className="text-gray-900 dark:text-white">{item.item_key}</p>
-                    </div>
-                )}
-
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Item Name
