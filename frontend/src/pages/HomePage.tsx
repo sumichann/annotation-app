@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import ProgressSection from '../components/ProgressSection'
 
 function HomePage() {
     const [indexInput, setIndexInput] = useState('')
@@ -58,6 +59,8 @@ function HomePage() {
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center p-8">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-8">Annotation application</h1>
+
+            <ProgressSection />
 
             {/* カテゴリー選択セクション */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-2xl mb-6">
