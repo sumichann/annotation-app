@@ -63,7 +63,9 @@ function ItemCard({ item, onUpdate }: ItemCardProps) {
                         Verification Result
                     </label>
                     <p className="text-gray-900 dark:text-white mb-4">
-                        {item?.verification_result || 'Not verified'}
+                        {item?.verification_result === 'nd'
+                            ? 'No data'
+                            : item?.verification_result || 'Not verified'}
                     </p>
 
                     <div className="flex gap-2">
@@ -80,6 +82,13 @@ function ItemCard({ item, onUpdate }: ItemCardProps) {
                             className="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
                         >
                             {isUpdating ? 'Updating...' : 'Reject'}
+                        </button>
+                        <button
+                            onClick={() => handleUpdate('nd')}
+                            disabled={isUpdating}
+                            className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                        >
+                            {isUpdating ? 'Updating...' : 'No data'}
                         </button>
                     </div>
                 </div>
