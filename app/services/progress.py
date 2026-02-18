@@ -136,3 +136,33 @@ def get_next_incomplete_index_after(
                 if candidate is None or prod.index < candidate:
                     candidate = prod.index
     return candidate
+
+
+def get_prev_index_in_assignments(
+    db: Session, username: str, category: str, before_index: int
+) -> Optional[int]:
+    """
+    指定担当者・カテゴリで、before_index より小さい範囲にある「担当範囲内の最大 index」を返す。
+    完了・未完了は問わず、割り当て範囲だけに限定して「前へ」を動かすために使う。
+    """
+    assignments = (
+        db.query(models.Assignment)
+        .filter(
+            models.Assignment.assigned_username == username,
+            models.Assignment.category == category,
+        )
+        .order_by(models.Assignment.index_start)
+        .all()
+    )
+    if not assignments:
+        return None
+
+    candidate: Optional[int] = None
+    for a in assignments:
+        # この assignment の範囲内で before_index 未満の最大 index
+        if a.index_start >= before_index:
+            continue
+        local_max = min(before_index - 1, a.index_end)
+        if candidate is None or local_max > candidate:
+            candidate = local_max
+    return candidate

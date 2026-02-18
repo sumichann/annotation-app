@@ -62,6 +62,20 @@ def get_next_incomplete_index(
     return {"next_index": next_index}
 
 
+@app.get("/progress/prev-index")
+def get_prev_index(
+    username: str = Query(..., description="担当者名"),
+    category: str = Query(..., description="カテゴリ"),
+    before_index: int = Query(..., ge=1, description="この index より小さい担当範囲内の最大 index を返す"),
+    db: Session = Depends(database.get_db),
+):
+    """担当範囲内に限定して、「前へ」で移動する index を返す。"""
+    prev_index = progress_service.get_prev_index_in_assignments(
+        db, username, category, before_index
+    )
+    return {"prev_index": prev_index}
+
+
 @app.get("/items/{item_id}", response_model=List[schemas.ItemResponse])
 def get_item(
     item_id: UUID,
