@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '../lib/api'
 
 interface ImageData {
     filename: string
@@ -105,9 +106,8 @@ function ImageGallery({ uuid, category }: ImageGalleryProps) {
             try {
                 setLoading(true)
                 setError(null)
-                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
                 const params = category ? `?category=${encodeURIComponent(category)}` : ''
-                const response = await fetch(`${apiUrl}/images/${uuid}${params}`)
+                const response = await fetch(`${getApiUrl()}/images/${uuid}${params}`)
 
                 if (!response.ok) {
                     if (response.status === 404) {

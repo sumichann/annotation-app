@@ -48,6 +48,20 @@ def get_progress(
     return progress_service.get_progress(db, username)
 
 
+@app.get("/progress/next-index")
+def get_next_incomplete_index(
+    username: str = Query(..., description="担当者名"),
+    category: str = Query(..., description="カテゴリ"),
+    after_index: int = Query(..., ge=0, description="この index より大きい未完了の最小 index を返す（今の画面を除く）"),
+    db: Session = Depends(database.get_db),
+):
+    """今の作業画面を除き、次にやるべき未完了の最小 index を返す。"""
+    next_index = progress_service.get_next_incomplete_index_after(
+        db, username, category, after_index
+    )
+    return {"next_index": next_index}
+
+
 @app.get("/items/{item_id}", response_model=List[schemas.ItemResponse])
 def get_item(
     item_id: UUID,

@@ -1,12 +1,5 @@
 import ItemCard from './ItemCard'
-
-interface Item {
-    anon_item_id: string
-    item_key?: string
-    item_name: string
-    composition_data?: any
-    verification_result?: string | null
-}
+import type { Item } from '../types/item'
 
 interface ItemListSectionProps {
     items: Item[]

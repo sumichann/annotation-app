@@ -1,12 +1,5 @@
 import { useState } from 'react'
-
-interface Item {
-    anon_item_id: string
-    item_key?: string
-    item_name: string
-    composition_data?: any
-    verification_result?: string | null
-}
+import type { Item } from '../types/item'
 
 interface ItemCardProps {
     item: Item
@@ -47,7 +40,7 @@ function ItemCard({ item, onUpdate }: ItemCardProps) {
                     <p className="text-gray-900 dark:text-white">{item?.item_name}</p>
                 </div>
 
-                {item?.composition_data && (
+                {item?.composition_data != null ? (
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Composition Data
@@ -56,7 +49,7 @@ function ItemCard({ item, onUpdate }: ItemCardProps) {
                             {JSON.stringify(item.composition_data, null, 2)}
                         </pre>
                     </div>
-                )}
+                ) : null}
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
