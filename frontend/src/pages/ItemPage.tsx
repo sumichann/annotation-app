@@ -16,6 +16,7 @@ function ItemPage() {
     const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(true)
     const [loadingNext, setLoadingNext] = useState(false)
+    const [loadingPrev, setLoadingPrev] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const fetchItems = useCallback(async () => {
@@ -77,6 +78,74 @@ function ItemPage() {
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to update verification')
             throw err
+        }
+    }
+
+    const handlePrevItem = async () => {
+        if (!category) {
+            alert('カテゴリーが指定されていません')
+            return
+        }
+        const currentIndex = items[0]?.index
+        if (currentIndex == null || typeof currentIndex !== 'number') {
+            alert('現在の通し番号が取得できません（index がありません）')
+            return
+        }
+
+        const username = searchParams.get('username')?.trim() || undefined
+
+        let prevIndex: number
+        if (username) {
+            try {
+                const prevRes = await fetch(
+                    `${getApiUrl()}/progress/prev-index?username=${encodeURIComponent(
+                        username
+                    )}&category=${encodeURIComponent(category)}&before_index=${currentIndex}`
+                )
+                if (!prevRes.ok) throw new Error('Failed to fetch prev index')
+                const prevData = await prevRes.json()
+                if (prevData.prev_index == null) {
+                    alert('このカテゴリでこれ以上前の担当範囲はありません')
+                    return
+                }
+                prevIndex = prevData.prev_index
+            } catch (err) {
+                alert(err instanceof Error ? err.message : '前の index の取得に失敗しました')
+                return
+            }
+        } else {
+            prevIndex = currentIndex - 1
+            if (prevIndex < 1) {
+                alert('これ以上前のアイテムはありません')
+                return
+            }
+        }
+
+        try {
+            setLoadingPrev(true)
+            const response = await fetch(
+                `${getApiUrl()}/items/by-index?category=${encodeURIComponent(category)}&index=${prevIndex}`
+            )
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    alert('前のアイテムがありません')
+                    return
+                }
+                throw new Error('Failed to fetch previous item')
+            }
+
+            const data = await response.json()
+            const nextQuery = new URLSearchParams(searchParams)
+            if (data?.anon_item_id) {
+                navigate(`/item/${data.anon_item_id}?${nextQuery.toString()}`)
+            } else {
+                alert('アイテムの取得に失敗しました')
+            }
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'エラーが発生しました')
+        } finally {
+            setLoadingPrev(false)
         }
     }
 
@@ -158,13 +227,22 @@ function ItemPage() {
                             ← Back to Home
                         </button>
                         {category && (
-                            <button
-                                onClick={handleNextItem}
-                                disabled={loadingNext || items[0]?.index == null}
-                                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {loadingNext ? '読み込み中...' : '次へ →'}
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handlePrevItem}
+                                    disabled={loadingPrev || items[0]?.index == null}
+                                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    {loadingPrev ? '読み込み中...' : '← 前へ'}
+                                </button>
+                                <button
+                                    onClick={handleNextItem}
+                                    disabled={loadingNext || items[0]?.index == null}
+                                    className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    {loadingNext ? '読み込み中...' : '次へ →'}
+                                </button>
+                            </div>
                         )}
                     </div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
