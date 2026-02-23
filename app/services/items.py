@@ -42,19 +42,40 @@ def get_item(
     item_id: UUID,
     category: Optional[str],
 ) -> List[schemas.ItemResponse]:
-    """item_id と category でアイテム一覧を取得する。"""
+    """item_id と category でアイテム一覧を取得する。
+    product はあるが item が 0 件の場合は、product 情報だけ返す（404 にしない）。
+    """
     item_model = get_item_model_by_category(category)
     product_model = get_product_model_by_category(category)
 
     items = db.query(item_model).filter(item_model.anon_item_id == item_id).all()
-    if not items:
-        raise HTTPException(status_code=404, detail="Item not found")
-
     product = (
         db.query(product_model).filter(product_model.anon_item_id == item_id).first()
     )
 
-    product_index = getattr(product, "index", None) if product else None
+    # product がなければ 404（item_id が無効）
+    if not product:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    product_index = getattr(product, "index", None)
+    product_name = getattr(product, "name", None)
+    product_description = getattr(product, "description", None)
+
+    # item が 0 件でも product があれば、product 情報だけ返す（次へ・前へで脱出可能にする）
+    if not items:
+        return [
+            schemas.ItemResponse(
+                anon_item_id=item_id,
+                item_key=None,
+                item_name="（アイテム未登録）",
+                composition_data=None,
+                verification_result=None,
+                product_name=product_name,
+                product_description=product_description,
+                index=product_index,
+            )
+        ]
+
     response_items: list[schemas.ItemResponse] = []
     for item in items:
         index_val = getattr(item, "index_of_products", None)
@@ -67,10 +88,8 @@ def get_item(
                 item_name=item.item_name,
                 composition_data=item.composition_data,
                 verification_result=item.verification_result,
-                product_name=getattr(product, "name", None) if product else None,
-                product_description=getattr(product, "description", None)
-                if product
-                else None,
+                product_name=product_name,
+                product_description=product_description,
                 index=index_val,
             )
         )

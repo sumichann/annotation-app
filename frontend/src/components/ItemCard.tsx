@@ -25,13 +25,20 @@ function ItemCard({ item, onUpdate }: ItemCardProps) {
         }
     }
 
+    const isPlaceholder = !item.item_key && item.item_name === '（アイテム未登録）'
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
             <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {item.item_key}
+                    {item.item_key ?? '—'}
                 </h2>
             </div>
+            {isPlaceholder ? (
+                <p className="text-amber-600 dark:text-amber-400 font-medium">
+                    この商品はAIによる推計を行っていません。次へ・前へで他のアイテムに移動できます。
+                </p>
+            ) : (
             <div className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -86,6 +93,7 @@ function ItemCard({ item, onUpdate }: ItemCardProps) {
                     </div>
                 </div>
             </div>
+            )}
         </div>
     )
 }
