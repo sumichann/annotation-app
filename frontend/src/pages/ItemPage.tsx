@@ -8,6 +8,17 @@ import { getApiUrl } from '../lib/api'
 import { sortItemsByItemKeyIndex } from '../lib/itemUtils'
 import type { Item } from '../types/item'
 
+/** 操作対象のアイテムがすべて verification_result を持っているか */
+function allItemsOperated(items: Item[]): boolean {
+    const toCheck = items.filter((i) => i.item_key != null && i.item_key !== '')
+    if (toCheck.length === 0) return true
+    return toCheck.every(
+        (i) =>
+            i.verification_result != null &&
+            String(i.verification_result).trim() !== ''
+    )
+}
+
 function ItemPage() {
     const { itemId } = useParams<{ itemId: string }>()
     const [searchParams] = useSearchParams()
@@ -38,8 +49,10 @@ function ItemPage() {
             const data = await response.json()
             const normalized: Item[] = Array.isArray(data) ? data : [data]
             // item_key の番号順（item_1, item_2, ...）に並べ替えてからセット
-            setItems(sortItemsByItemKeyIndex(normalized))
+            const sorted = sortItemsByItemKeyIndex(normalized)
+            setItems(sorted)
             setError(null)
+            return sorted
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch item')
         } finally {
@@ -74,7 +87,16 @@ function ItemPage() {
             }
 
             // 更新後、アイテムリストを再取得
-            await fetchItems()
+            const updatedItems = await fetchItems()
+            // 全アイテムが操作済みなら自動で次ページへ
+            if (
+                updatedItems &&
+                category &&
+                allItemsOperated(updatedItems) &&
+                updatedItems[0]?.index != null
+            ) {
+                await handleNextItem(updatedItems[0].index)
+            }
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to update verification')
             throw err
@@ -149,12 +171,12 @@ function ItemPage() {
         }
     }
 
-    const handleNextItem = async () => {
+    const handleNextItem = async (overrideIndex?: number) => {
         if (!category) {
             alert('カテゴリーが指定されていません')
             return
         }
-        const currentIndex = items[0]?.index
+        const currentIndex = overrideIndex ?? items[0]?.index
         if (currentIndex == null || typeof currentIndex !== 'number') {
             alert('現在の通し番号が取得できません（index がありません）')
             return
@@ -236,7 +258,7 @@ function ItemPage() {
                                     {loadingPrev ? '読み込み中...' : '← 前へ'}
                                 </button>
                                 <button
-                                    onClick={handleNextItem}
+                                    onClick={() => handleNextItem()}
                                     disabled={loadingNext || items[0]?.index == null}
                                     className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                                 >
